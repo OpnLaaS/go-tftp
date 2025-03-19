@@ -50,11 +50,11 @@ func Serve() (quit chan bool, err error) {
 				}
 
 				if bytesRead < 4 {
-					log.Errorf("Invalid request from %s", clientAddr.String())
+					log.Errorf("Invalid request from %s\n", clientAddr.String())
 					continue
 				}
 
-				log.Basicf("Received %d bytes from %s", bytesRead, clientAddr.String())
+				log.Basicf("Received %d bytes from %s\n", bytesRead, clientAddr.String())
 
 				opcode = int(buffer[1])
 
@@ -64,6 +64,7 @@ func Serve() (quit chan bool, err error) {
 						continue
 					}
 
+					log.Importantf("Received RRQ request for %s from %s\n", filename, clientAddr.String())
 					lib.SendFile(conn, clientAddr, filename)
 				}
 			}
