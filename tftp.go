@@ -54,13 +54,11 @@ func Serve() (quit chan bool, err error) {
 					continue
 				}
 
-				log.Basicf("Received %d bytes from %s\n", bytesRead, clientAddr.String())
-
 				opcode = int(buffer[1])
 
 				if opcode == lib.OPCODE_RRQ {
 					if filename, _, err = lib.ParseRQQRequest(buffer[:bytesRead]); err != nil {
-						log.Error(err.Error())
+						log.Errorf("Failed to parse RRQ request for %s: %s\n", clientAddr.String(), err.Error())
 						continue
 					}
 
