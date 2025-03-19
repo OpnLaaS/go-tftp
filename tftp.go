@@ -4,6 +4,7 @@ import (
 	"net"
 
 	"github.com/OpnLaaS/go-tftp/lib"
+	"github.com/z46-dev/go-logger"
 )
 
 func Serve() (quit chan bool, err error) {
@@ -22,9 +23,9 @@ func Serve() (quit chan bool, err error) {
 		return nil, err
 	}
 
-	defer conn.Close()
-
 	go func() {
+		defer conn.Close()
+
 		var (
 			bytesRead  int    = 0
 			buffer     []byte = make([]byte, 1024)
@@ -32,21 +33,34 @@ func Serve() (quit chan bool, err error) {
 			filename   string
 			opcode     int
 			err        error
+			log        *logger.Logger = logger.NewLogger().SetPrefix("[TFTP]", logger.BoldPurple).IncludeTimestamp()
 		)
+
+		log.Status("Server started")
 
 		for {
 			select {
 			case <-quit:
+				log.Status("Server stopped due to quit signal")
 				return
 			default:
-				if bytesRead, clientAddr, err = conn.ReadFromUDP(buffer); err != nil || bytesRead < 4 {
+				if bytesRead, clientAddr, err = conn.ReadFromUDP(buffer); err != nil {
+					log.Error(err.Error())
 					continue
 				}
+
+				if bytesRead < 4 {
+					log.Errorf("Invalid request from %s", clientAddr.String())
+					continue
+				}
+
+				log.Basicf("Received %d bytes from %s", bytesRead, clientAddr.String())
 
 				opcode = int(buffer[1])
 
 				if opcode == lib.OPCODE_RRQ {
 					if filename, _, err = lib.ParseRQQRequest(buffer[:bytesRead]); err != nil {
+						log.Error(err.Error())
 						continue
 					}
 
