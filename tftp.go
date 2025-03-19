@@ -64,8 +64,12 @@ func Serve() (quit chan bool, err error) {
 						continue
 					}
 
-					log.Importantf("Received RRQ request for %s from %s\n", filename, clientAddr.String())
-					lib.SendFile(conn, clientAddr, filename)
+					log.Warningf("Received RRQ request for %s from %s\n", filename, clientAddr.String())
+					if err = lib.SendFile(conn, clientAddr, filename); err != nil {
+						log.Errorf("Failed to send file: %s\n", err.Error())
+					} else {
+						log.Successf("File %s sent to %s\n", filename, clientAddr.String())
+					}
 				}
 			}
 		}
