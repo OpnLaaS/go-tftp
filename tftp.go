@@ -16,11 +16,11 @@ func Serve(rootDir string) (quit chan bool, err error) {
 		conn *net.UDPConn
 	)
 
-	if addr, err = net.ResolveUDPAddr("udp", lib.PORT); err != nil {
+	if addr, err = net.ResolveUDPAddr("udp4", lib.PORT); err != nil {
 		return nil, err
 	}
 
-	if conn, err = net.ListenUDP("udp", addr); err != nil {
+	if conn, err = net.ListenUDP("udp4", addr); err != nil {
 		return nil, err
 	}
 
