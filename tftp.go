@@ -17,7 +17,7 @@ func serveHTTP(rootDir string) *http.Server {
 	var server *http.Server = &http.Server{Addr: lib.HTTP_PORT}
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		var fPath string = path.Join(rootDir, r.URL.Path)
+		var fPath string = "./" + path.Join(rootDir, r.URL.Path)
 
 		fmt.Println(fPath)
 
