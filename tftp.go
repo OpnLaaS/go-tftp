@@ -1,6 +1,7 @@
 package gotftp
 
 import (
+	"fmt"
 	"net"
 
 	"github.com/OpnLaaS/go-tftp/lib"
