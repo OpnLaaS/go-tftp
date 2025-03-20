@@ -1,14 +1,39 @@
 package gotftp
 
 import (
-	"fmt"
+	"context"
 	"net"
+	"net/http"
+	"path"
+	"strings"
 
 	"github.com/OpnLaaS/go-tftp/lib"
 	"github.com/z46-dev/go-logger"
 )
 
-func Serve(rootDir string) (quit chan bool, err error) {
+func serveHTTP(rootDir string) *http.Server {
+	var server *http.Server = &http.Server{Addr: lib.HTTP_PORT}
+
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		var fPath string = path.Join(rootDir, r.URL.Path)
+
+		if !strings.HasPrefix(fPath, rootDir) {
+			return
+		}
+
+		http.ServeFile(w, r, fPath)
+	})
+
+	go func() {
+		if err := server.ListenAndServe(); err != http.ErrServerClosed {
+			panic(err)
+		}
+	}()
+
+	return server
+}
+
+func Serve(rootDir string, serveHTTPFallback bool) (quit chan bool, err error) {
 	quit = make(chan bool)
 
 	var (
@@ -24,8 +49,18 @@ func Serve(rootDir string) (quit chan bool, err error) {
 		return nil, err
 	}
 
+	var server *http.Server = nil
+
+	if serveHTTPFallback {
+		server = serveHTTP(rootDir)
+	}
+
 	go func() {
 		defer conn.Close()
+
+		if server != nil {
+			defer server.Shutdown(context.TODO())
+		}
 
 		var (
 			bytesRead  int    = 0
@@ -63,8 +98,12 @@ func Serve(rootDir string) (quit chan bool, err error) {
 						continue
 					}
 
-					log.Warningf("Received RRQ request for %s from %s\n", filename, clientAddr.String())
-					if err = lib.SendFile(conn, clientAddr, fmt.Sprintf("%s/%s", rootDir, filename)); err != nil {
+					var fPath string = path.Join(rootDir, filename)
+					log.Warningf("Received RRQ request for %s from %s\n", fPath, clientAddr.String())
+
+					if !strings.HasPrefix(fPath, rootDir) {
+						lib.SendError(conn, addr, 1, "File not found")
+					} else if err = lib.SendFile(conn, clientAddr, fPath); err != nil {
 						log.Errorf("Failed to send file: %s\n", err.Error())
 					} else {
 						log.Successf("File %s sent to %s\n", filename, clientAddr.String())
