@@ -2,8 +2,10 @@ package gotftp
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"net/http"
+	"os"
 	"path"
 	"strings"
 
@@ -17,7 +19,15 @@ func serveHTTP(rootDir string) *http.Server {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		var fPath string = path.Join(rootDir, r.URL.Path)
 
+		fmt.Println(fPath)
+
 		if !strings.HasPrefix(fPath, rootDir) {
+			http.Error(w, "File not found", http.StatusNotFound)
+			return
+		}
+
+		if _, err := os.Stat(fPath); os.IsNotExist(err) {
+			http.Error(w, "File not found", http.StatusNotFound)
 			return
 		}
 
