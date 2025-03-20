@@ -1,7 +1,7 @@
 package lib
 
 const (
-	PORT = ":69"
+	PORT = "0.0.0.0:69"
 	BLOCK_SIZE = 512
 	OPCODE_RRQ = 1
 	OPCODE_DATA = 3
