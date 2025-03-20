@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"net"
 	"os"
-
-	"github.com/z46-dev/go-logger"
 )
 
 func SendError(conn *net.UDPConn, addr *net.UDPAddr, errCode int, errMsg string) (err error) {
@@ -44,7 +42,7 @@ func ParseRQQRequest(buffer []byte) (file string, mode string, err error) {
 	return file, mode, nil
 }
 
-func SendFile(conn *net.UDPConn, addr *net.UDPAddr, filename string, log *logger.Logger) (err error) {
+func SendFile(conn *net.UDPConn, addr *net.UDPAddr, filename string) (err error) {
 	var file *os.File
 
 	if file, err = os.Open(filename); err != nil {
@@ -74,8 +72,6 @@ func SendFile(conn *net.UDPConn, addr *net.UDPAddr, filename string, log *logger
 		if _, err = conn.WriteToUDP(dataPacket, addr); err != nil {
 			return err
 		}
-
-		log.Basicf("Sent block %d\n", blockNum)
 
 		var ack []byte = make([]byte, 4)
 		if _, _, err = conn.ReadFromUDP(ack); err != nil {
