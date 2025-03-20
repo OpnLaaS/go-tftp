@@ -64,7 +64,7 @@ func Serve(rootDir string) (quit chan bool, err error) {
 					}
 
 					log.Warningf("Received RRQ request for %s from %s\n", filename, clientAddr.String())
-					if err = lib.SendFile(conn, clientAddr, fmt.Sprintf("%s/%s", rootDir, filename)); err != nil {
+					if err = lib.SendFile(conn, clientAddr, fmt.Sprintf("%s/%s", rootDir, filename), log); err != nil {
 						log.Errorf("Failed to send file: %s\n", err.Error())
 					} else {
 						log.Successf("File %s sent to %s\n", filename, clientAddr.String())
