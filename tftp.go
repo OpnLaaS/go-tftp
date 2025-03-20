@@ -33,7 +33,7 @@ func serveHTTP(rootDir string) *http.Server {
 	return server
 }
 
-func Serve(rootDir string, serveHTTPFallback bool) (quit chan bool, err error) {
+func Serve(rootDir string, serveHTTPFallbackDir string) (quit chan bool, err error) {
 	quit = make(chan bool)
 
 	var (
@@ -51,8 +51,8 @@ func Serve(rootDir string, serveHTTPFallback bool) (quit chan bool, err error) {
 
 	var server *http.Server = nil
 
-	if serveHTTPFallback {
-		server = serveHTTP(rootDir)
+	if serveHTTPFallbackDir != "" {
+		server = serveHTTP(serveHTTPFallbackDir)
 	}
 
 	go func() {
