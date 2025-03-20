@@ -43,46 +43,51 @@ func ParseRQQRequest(buffer []byte) (file string, mode string, err error) {
 }
 
 func SendFile(conn *net.UDPConn, addr *net.UDPAddr, filename string) (err error) {
-	var file *os.File
+    var file *os.File
 
-	if file, err = os.Open(filename); err != nil {
-		SendError(conn, addr, 1, "File not found")
-		return err
-	}
+    if file, err = os.Open(filename); err != nil {
+        SendError(conn, addr, 1, "File not found")
+        return err
+    }
+    defer file.Close()
 
-	defer file.Close()
+    var (
+        bytesRead int    = 0
+        blockNum  uint16 = 1
+        buffer    []byte = make([]byte, BLOCK_SIZE)
+    )
 
-	var (
-		bytesRead int    = 0
-		blockNum  uint16 = 1
-		buffer    []byte = make([]byte, BLOCK_SIZE)
-	)
+    for {
+        if bytesRead, err = file.Read(buffer); err != nil {
+            return err
+        }
 
-	for {
-		if bytesRead, err = file.Read(buffer); err != nil {
-			return err
-		}
+        var dataPacket []byte = make([]byte, 4+bytesRead)
+        dataPacket[0] = 0
+        dataPacket[1] = OPCODE_DATA
+        dataPacket[2] = byte(blockNum >> 8)
+        dataPacket[3] = byte(blockNum)
+        copy(dataPacket[4:], buffer[:bytesRead])
 
-		var dataPacket []byte = make([]byte, 4+bytesRead)
+        if _, err = conn.WriteToUDP(dataPacket, addr); err != nil {
+            return err
+        }
 
-		dataPacket[0] = 0
-		dataPacket[1] = OPCODE_DATA
-		dataPacket[2] = byte(blockNum >> 8)
-		dataPacket[3] = byte(blockNum)
-		copy(dataPacket[4:], buffer[:bytesRead])
+	fmt.Println("Sending data chunk", blockNum) 
 
-		if _, err = conn.WriteToUDP(dataPacket, addr); err != nil {
-			return err
-		}
+        var ack []byte = make([]byte, 4)
+        if _, _, err = conn.ReadFromUDP(ack); err != nil {
+            return err
+        }
 
-		var ack []byte = make([]byte, 4)
-		if _, _, err = conn.ReadFromUDP(ack); err != nil {
-			return err
-		}
+        if ack[1] != OPCODE_ACK || ack[2] != byte(blockNum>>8) || ack[3] != byte(blockNum) {
+            return fmt.Errorf("invalid ACK received: %v", ack)
+        }
 
-		blockNum++
-		if bytesRead < BLOCK_SIZE {
-			return nil
-		}
-	}
+        blockNum++
+        if bytesRead < BLOCK_SIZE {
+            return nil
+        }
+    }
 }
+
