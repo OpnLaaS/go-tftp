@@ -14,27 +14,36 @@ import (
 
 func serveHTTP(rootDir string) *http.Server {
 	var server *http.Server = &http.Server{Addr: lib.HTTP_PORT}
+	var log *logger.Logger = logger.NewLogger().SetPrefix("[HTTP]", logger.BoldGreen).IncludeTimestamp()
+
+	log.Status("Server started")
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		var fPath string = "./" + path.Join(rootDir, r.URL.Path)
+		log.Warningf("Serving %s\n", fPath)
 
 		if !strings.HasPrefix(fPath, rootDir) {
 			http.Error(w, "File not found", http.StatusNotFound)
+			log.Errorf("File not found: %s\n", fPath)
 			return
 		}
 
 		if _, err := os.Stat(fPath); os.IsNotExist(err) {
 			http.Error(w, "File not found", http.StatusNotFound)
+			log.Errorf("File not found: %s\n", fPath)
 			return
 		}
 
 		http.ServeFile(w, r, fPath)
+		log.Successf("Served %s\n", fPath)
 	})
 
 	go func() {
 		if err := server.ListenAndServe(); err != http.ErrServerClosed {
-			panic(err)
+			log.Error(err.Error())
 		}
+
+		log.Status("Server stopped")
 	}()
 
 	return server
