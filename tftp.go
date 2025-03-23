@@ -19,7 +19,7 @@ func serveHTTP(rootDir string) *http.Server {
 	log.Status("Server started")
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		var fPath string = "./" + path.Join(rootDir, r.URL.Path)
+		var fPath string = path.Join(rootDir, r.URL.Path)
 		log.Warningf("Serving %s\n", fPath)
 
 		if !strings.HasPrefix(fPath, rootDir) {
