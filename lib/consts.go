@@ -1,8 +1,6 @@
 package lib
 
 const (
-	PORT = ":69"
-	HTTP_PORT = "0.0.0.0:8069"
 	BLOCK_SIZE = 512
 	OPCODE_RRQ = 1
 	OPCODE_DATA = 3

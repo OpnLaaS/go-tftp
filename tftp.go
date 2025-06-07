@@ -2,6 +2,7 @@ package gotftp
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"net/http"
 	"os"
@@ -12,11 +13,11 @@ import (
 	"github.com/z46-dev/go-logger"
 )
 
-func serveHTTP(rootDir string) *http.Server {
-	var server *http.Server = &http.Server{Addr: lib.HTTP_PORT}
+func serveHTTP(rootDir, httpAddr string) *http.Server {
+	var server *http.Server = &http.Server{Addr: httpAddr}
 	var log *logger.Logger = logger.NewLogger().SetPrefix("[HTTP]", logger.BoldGreen).IncludeTimestamp()
 
-	log.Status("Server started")
+	log.Statusf("Server started on %s\n", httpAddr)
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		var fPath string = path.Join(rootDir, r.URL.Path)
@@ -49,15 +50,30 @@ func serveHTTP(rootDir string) *http.Server {
 	return server
 }
 
-func Serve(rootDir string, serveHTTPFallbackDir string) (quit chan bool, err error) {
-	quit = make(chan bool)
+type TFTPOptions struct {
+	RootDir   string
+	TFTP_Address string
+
+	ServeHttp    bool
+	HTTP_RootDir string
+	HTTP_Address string
+}
+
+func Serve(options TFTPOptions) (quit chan bool, err error) {
+	if options.RootDir == "" {
+		return nil, fmt.Errorf("config err: options.RootDir is required")
+	}
+
+	if options.TFTP_Address == "" {
+		return nil, fmt.Errorf("config err: options.TFTP_Address is required")
+	}
 
 	var (
 		addr *net.UDPAddr
 		conn *net.UDPConn
 	)
 
-	if addr, err = net.ResolveUDPAddr("udp4", lib.PORT); err != nil {
+	if addr, err = net.ResolveUDPAddr("udp4", options.TFTP_Address); err != nil {
 		return nil, err
 	}
 
@@ -67,9 +83,19 @@ func Serve(rootDir string, serveHTTPFallbackDir string) (quit chan bool, err err
 
 	var server *http.Server = nil
 
-	if serveHTTPFallbackDir != "" {
-		server = serveHTTP(serveHTTPFallbackDir)
+	if options.ServeHttp {
+		if options.HTTP_RootDir == "" {
+			return nil, fmt.Errorf("config err: options.HTTP_RootDir is required when ServeHttp is true")
+		}
+
+		if options.HTTP_Address == "" {
+			return nil, fmt.Errorf("config err: options.HTTP_Address is required when ServeHttp is true")
+		}
+
+		server = serveHTTP(options.HTTP_RootDir, options.HTTP_Address)
 	}
+
+	quit = make(chan bool)
 
 	go func() {
 		defer conn.Close()
@@ -114,10 +140,10 @@ func Serve(rootDir string, serveHTTPFallbackDir string) (quit chan bool, err err
 						continue
 					}
 
-					var fPath string = path.Join(rootDir, filename)
+					var fPath string = path.Join(options.RootDir, filename)
 					log.Warningf("Received RRQ request for %s from %s\n", fPath, clientAddr.String())
 
-					if !strings.HasPrefix(fPath, rootDir) {
+					if !strings.HasPrefix(fPath, options.RootDir) {
 						lib.SendError(conn, addr, 1, "File not found")
 					} else if err = lib.SendFile(conn, clientAddr, fPath); err != nil {
 						log.Errorf("Failed to send file: %s\n", err.Error())

@@ -16,13 +16,20 @@ import (
 func main() {
 	fmt.Println("Starting server")
 
-	ch, err := tftp.Serve()
+	quit, err := tftp.Serve(TFTPOptions{
+		RootDir: "/var/tftp",
+		TFTP_Address: ":69",
+
+		ServeHTTP: true,
+		HTTP_RootDir: "/var/www",
+		HTTP_Address: ":8069"
+	})
 
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
-	<-ch
+	<-quit
 }
 ```
