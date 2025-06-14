@@ -14,12 +14,12 @@ import (
 )
 
 func serveHTTP(rootDir, httpAddr string) *http.Server {
-	var server *http.Server = &http.Server{Addr: httpAddr}
+	var mux *http.ServeMux = http.NewServeMux()
 	var log *logger.Logger = logger.NewLogger().SetPrefix("[HTTP]", logger.BoldGreen).IncludeTimestamp()
 
 	log.Statusf("Server started on %s\n", httpAddr)
 
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		var fPath string = path.Join(rootDir, r.URL.Path)
 		log.Warningf("Serving %s\n", fPath)
 
@@ -38,6 +38,11 @@ func serveHTTP(rootDir, httpAddr string) *http.Server {
 		http.ServeFile(w, r, fPath)
 		log.Successf("Served %s\n", fPath)
 	})
+
+	var server *http.Server = &http.Server{
+		Addr:    httpAddr,
+		Handler: mux,
+	}
 
 	go func() {
 		if err := server.ListenAndServe(); err != http.ErrServerClosed {
